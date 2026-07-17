@@ -1,0 +1,114 @@
+{
+  "name": "ksp-mission-display",
+  "version": "0.1.5",
+  "description": "Desktop launch telemetry and mission planning display for KSP RSS/RO",
+  "author": "KSP Mission Display Project",
+  "private": true,
+  "main": "electron/main.mjs",
+  "engines": {
+    "node": ">=22.13.0"
+  },
+  "scripts": {
+    "dev": "vinext dev",
+    "dev:lan": "vinext dev --hostname 0.0.0.0 --port 3013",
+    "build": "vinext build && node scripts/prepare-standalone.mjs",
+    "build:all": "powershell -NoProfile -ExecutionPolicy Bypass -File build.ps1",
+    "start": "vinext start",
+    "electron:dev": "concurrently -k -s first \"npm run dev -- --port 3011\" \"wait-on http://127.0.0.1:3011 && cross-env ELECTRON_START_URL=http://127.0.0.1:3011 electron .\"",
+    "electron:dev:lan": "concurrently -k -s first \"npm run dev:lan\" \"wait-on http://127.0.0.1:3013 && cross-env ELECTRON_START_URL=http://127.0.0.1:3013 KMD_EXPOSE_LAN=1 electron .\"",
+    "backend:bundle": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/build-python-backend.ps1",
+    "electron:pack": "npm run build && electron-builder --dir",
+    "electron:dist": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/package-electron.ps1",
+    "build:test": "cross-env NEXT_PUBLIC_KMD_WS_URL=ws://127.0.0.1:18021/v1/telemetry/ws npm run build",
+    "fake-backend": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/run-fake-backend.ps1",
+    "test": "npm run test:all",
+    "test:node": "npm run build && node --test \"tests/*.test.mjs\"",
+    "test:python": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/test-python-backend.ps1",
+    "test:e2e": "npm run build:test && playwright test",
+    "test:all": "npm run test:python && npm run build:test && node --test \"tests/*.test.mjs\" && playwright test",
+    "lint": "eslint . --ignore-pattern dist --ignore-pattern release --ignore-pattern tmp --ignore-pattern .next --ignore-pattern backend/.deps --ignore-pattern backend/.build-deps --ignore-pattern backend/build --ignore-pattern backend/dist --ignore-pattern .venv"
+  },
+  "dependencies": {
+    "@fontsource/barlow": "^5.2.8",
+    "@fontsource/barlow-condensed": "^5.2.8",
+    "@fontsource/ibm-plex-mono": "^5.2.7",
+    "@fontsource/ibm-plex-sans": "^5.2.8",
+    "next": "16.2.6",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "sonner": "^2.0.7",
+    "vinext": "0.0.50"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.61.1",
+    "@tailwindcss/postcss": "4.2.1",
+    "@types/node": "22.19.19",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "@vitejs/plugin-rsc": "0.5.26",
+    "concurrently": "^10.0.3",
+    "cross-env": "^10.1.0",
+    "electron": "^43.1.1",
+    "electron-builder": "^26.15.3",
+    "eslint": "9.39.4",
+    "eslint-config-next": "16.2.6",
+    "react-server-dom-webpack": "19.2.6",
+    "tailwindcss": "4.2.1",
+    "typescript": "5.9.3",
+    "vite": "8.0.13",
+    "wait-on": "^9.0.10"
+  },
+  "build": {
+    "appId": "io.kspmissiondisplay.desktop",
+    "productName": "KSP Mission Display",
+    "asar": true,
+    "compression": "normal",
+    "npmRebuild": false,
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "dist/standalone",
+        "to": "standalone",
+        "filter": [
+          "**/*",
+          "!node_modules/**/*"
+        ]
+      },
+      {
+        "from": "dist/standalone/node_modules",
+        "to": "standalone/node_modules",
+        "filter": [
+          "**/*"
+        ]
+      },
+      {
+        "from": "backend/dist/kmd-backend",
+        "to": "backend",
+        "filter": [
+          "**/*"
+        ]
+      }
+    ],
+    "win": {
+      "target": [
+        "nsis",
+        "portable"
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true,
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true,
+      "shortcutName": "KSP Mission Display"
+    }
+  },
+  "type": "module"
+}
